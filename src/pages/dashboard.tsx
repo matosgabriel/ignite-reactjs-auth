@@ -9,7 +9,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!effectRan.current)
-      api.get('/me').then((response) => console.log(response.data));
+      api
+        .get('/me')
+        .then((response) => console.log(response.data))
+        .catch((err) => {
+          console.log(err);
+        });
 
     return () => {
       effectRan.current = true;

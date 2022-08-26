@@ -10,7 +10,7 @@ import {
 import { api } from '~/services/api';
 import Router from 'next/router';
 
-import { setCookie, parseCookies } from 'nookies';
+import { setCookie, parseCookies, destroyCookie } from 'nookies';
 
 interface User {
   email: string;
@@ -41,6 +41,13 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+export function signOut() {
+  destroyCookie(undefined, 'auth.token');
+  destroyCookie(undefined, 'auth.refreshToken');
+
+  Router.push('/');
+}
+
 const AuthContext = createContext({} as AuthContextData);
 
 function AuthProvider({ children }: AuthProviderProps) {
@@ -53,11 +60,16 @@ function AuthProvider({ children }: AuthProviderProps) {
     const { 'auth.token': token } = parseCookies();
 
     if (token && !effectRan.current) {
-      api.get('/me').then((response) => {
-        const { email, permissions, roles } = response.data;
+      api
+        .get('/me')
+        .then((response) => {
+          const { email, permissions, roles } = response.data;
 
-        setUser({ email, permissions, roles });
-      });
+          setUser({ email, permissions, roles });
+        })
+        .catch((error) => {
+          signOut();
+        });
     }
 
     return () => {
