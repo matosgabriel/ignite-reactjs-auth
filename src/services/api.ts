@@ -1,7 +1,7 @@
-import axios from 'axios';
-import { parseCookies } from 'nookies';
+import axios, { AxiosError } from 'axios';
+import { parseCookies, setCookie } from 'nookies';
 
-const cookies = parseCookies();
+let cookies = parseCookies();
 
 export const api = axios.create({
   baseURL: 'http://localhost:3333',
@@ -9,3 +9,48 @@ export const api = axios.create({
     Authorization: `Bearer ${cookies['auth.token']}`,
   },
 });
+
+interface ErrorResponseData {
+  code: string;
+  error: boolean;
+  message: string;
+}
+
+// Intercepts an response after getting her from back-end
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    const { code: errorResponseCode } = error.response
+      .data as ErrorResponseData;
+
+    if (error.response.status == 401) {
+      if (errorResponseCode === 'token.expired') {
+        // Refresh token strategy
+        cookies = parseCookies();
+
+        const { 'auth.refreshToken': refreshToken } = cookies;
+
+        api.post('/refresh', { refreshToken }).then((response) => {
+          const { token: newToken, refreshToken: newRefreshToken } =
+            response.data;
+
+          setCookie(undefined, 'auth.token', newToken, {
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+            path: '/',
+          });
+
+          setCookie(undefined, 'auth.refreshToken', newRefreshToken, {
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+            path: '/',
+          });
+
+          api.defaults.headers['Authorization'] = `Bearer ${newToken}`;
+        });
+      } else {
+        // Sign out user
+      }
+    }
+  }
+);
