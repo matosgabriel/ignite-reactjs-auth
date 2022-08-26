@@ -1,6 +1,6 @@
-import { useAuth } from 'context/AuthContext';
+import { useAuth } from '~/context/AuthContext';
 import { FormEvent, useState } from 'react';
-import styles from '../styles/Home.module.css';
+import styles from '../../styles/Home.module.css';
 
 export default function Home() {
   const [email, setEmail] = useState('');
