@@ -4,13 +4,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { api } from '~/services/api';
 import Router from 'next/router';
 
 import { setCookie, parseCookies } from 'nookies';
-import { decodeToken } from 'react-jwt';
 
 interface User {
   email: string;
@@ -44,22 +44,28 @@ interface AuthProviderProps {
 const AuthContext = createContext({} as AuthContextData);
 
 function AuthProvider({ children }: AuthProviderProps) {
+  const effectRan = useRef(false);
+
   const [user, setUser] = useState<User>(undefined);
   const isAuthenticated = !!user;
 
   useEffect(() => {
     const { 'auth.token': token } = parseCookies();
 
-    if (token) {
+    if (token && !effectRan.current) {
       api.get('/me').then((response) => {
         const { email, permissions, roles } = response.data;
 
         setUser({ email, permissions, roles });
       });
     }
+
+    return () => {
+      effectRan.current = true;
+    };
   }, []);
 
-  const signIn = useCallback(async ({ email, password }: SignInCredentials) => {
+  async function signIn({ email, password }: SignInCredentials) {
     try {
       const response = await api.post('/sessions', { email, password });
       const { token, refreshToken, permissions, roles } = response.data;
@@ -82,7 +88,7 @@ function AuthProvider({ children }: AuthProviderProps) {
     } catch (err) {
       console.log(err);
     }
-  }, []);
+  }
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, signIn, user }}>
@@ -97,4 +103,4 @@ function useAuth() {
   return authContextData;
 }
 
-export { AuthProvider, useAuth };
+export { AuthProvider, useAuth, AuthContext };
