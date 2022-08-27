@@ -1,6 +1,8 @@
 import { useAuth } from '~/context/AuthContext';
 import { FormEvent, useState } from 'react';
 import styles from '../../styles/Home.module.css';
+import { GetServerSideProps } from 'next';
+import { parseCookies } from 'nookies';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -32,3 +34,13 @@ export default function Home() {
     </form>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const cookies = parseCookies(ctx);
+
+  if (cookies['auth.token']) {
+    return { redirect: { destination: '/dashboard', permanent: false } };
+  }
+
+  return { props: {} };
+};
