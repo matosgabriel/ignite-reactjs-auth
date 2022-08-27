@@ -26,12 +26,15 @@ interface SignInCredentials {
 interface AuthContextData {
   isAuthenticated: boolean;
   signIn(credentials: SignInCredentials): Promise<void>;
+  signOut(): void;
   user: User;
 }
 
 interface AuthProviderProps {
   children: ReactNode;
 }
+
+export let authChannel: BroadcastChannel;
 
 export function signOut() {
   destroyCookie(undefined, 'auth.token');
@@ -44,9 +47,35 @@ const AuthContext = createContext({} as AuthContextData);
 
 function AuthProvider({ children }: AuthProviderProps) {
   const effectRan = useRef(false);
+  const broadcastEffectRan = useRef(false);
 
   const [user, setUser] = useState<User>(undefined);
   const isAuthenticated = !!user;
+
+  // Listening the auth broadcast channel
+  useEffect(() => {
+    authChannel = new BroadcastChannel('auth');
+
+    // Prevent duplicate execution off useEffect caused by strictMode (React v18)
+    if (!broadcastEffectRan.current) {
+      authChannel.onmessage = (message) => {
+        switch (message.data) {
+          case 'signOut':
+            signOut();
+            break;
+          case 'signIn':
+            Router.reload();
+            break;
+          default:
+            break;
+        }
+      };
+    }
+
+    return () => {
+      broadcastEffectRan.current = true;
+    };
+  }, []);
 
   useEffect(() => {
     const { 'auth.token': token } = parseCookies();
@@ -88,14 +117,16 @@ function AuthProvider({ children }: AuthProviderProps) {
 
       api.defaults.headers['Authorization'] = `Bearer ${token}`;
 
-      Router.push('/dashboard');
+      // Router.push('/dashboard');
+      // Router.reload();
+      authChannel.postMessage('signIn');
     } catch (err) {
       console.log(err);
     }
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, signIn, user }}>
+    <AuthContext.Provider value={{ isAuthenticated, signIn, signOut, user }}>
       {children}
     </AuthContext.Provider>
   );
