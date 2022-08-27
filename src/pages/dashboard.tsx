@@ -1,6 +1,7 @@
 import { destroyCookie } from 'nookies';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '~/context/AuthContext';
+import { useCan } from '~/hooks/useCan';
 import { setupAPIClient } from '~/services/api';
 import { api } from '~/services/apiClient';
 import { AuthTokenError } from '~/services/errors/AuthTokenError';
@@ -10,6 +11,10 @@ export default function Dashboard() {
   const effectRan = useRef(false);
 
   const { user } = useAuth();
+
+  const userCanSeeMetrics = useCan({
+    permissions: ['metrics.list'],
+  });
 
   useEffect(() => {
     if (!effectRan.current)
@@ -25,12 +30,17 @@ export default function Dashboard() {
     };
   }, []);
 
-  return <h1>Dashboard: {`${user?.email}`}</h1>;
+  return (
+    <div>
+      <h1>{userCanSeeMetrics && 'Métricas 1'}</h1>
+      <h1>Dashboard: {`${user?.email}`}</h1>
+    </div>
+  );
 }
 
 export const getServerSideProps = withSSRAuth(async (ctx) => {
   const apiClient = setupAPIClient(ctx);
-  const response = await apiClient.get('/me');
+  await apiClient.get('/me');
 
   return { props: {} };
 });
