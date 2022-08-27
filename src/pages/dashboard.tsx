@@ -1,5 +1,6 @@
 import { destroyCookie } from 'nookies';
 import { useEffect, useRef } from 'react';
+import { Can } from '~/components/Can';
 import { useAuth } from '~/context/AuthContext';
 import { useCan } from '~/hooks/useCan';
 import { setupAPIClient } from '~/services/api';
@@ -34,6 +35,8 @@ export default function Dashboard() {
     <div>
       <h1>{userCanSeeMetrics && 'Métricas 1'}</h1>
       <h1>Dashboard: {`${user?.email}`}</h1>
+
+      <Can permissions={['metrics.create']}>Métricas 2</Can>
     </div>
   );
 }
