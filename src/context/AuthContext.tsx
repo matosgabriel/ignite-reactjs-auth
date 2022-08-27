@@ -60,7 +60,7 @@ function AuthProvider({ children }: AuthProviderProps) {
           setUser({ email, permissions, roles });
         })
         .catch((error) => {
-          signOut();
+          if (process.browser) signOut();
         });
     }
 
